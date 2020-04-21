@@ -100,7 +100,8 @@ describe('Maintenance', function () {
         if(err){
           throw err;
         }
-        //add assertion here
+        //added assertion here
+        assert.equal(fixLevel, config.expectedFixLevel, "Fix Level is not as expected for " + config.maintainedMember);
         done();
       });
     });

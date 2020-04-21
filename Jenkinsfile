@@ -22,22 +22,23 @@ pipeline {
         stage('Download Maintenance') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo download'
+                    sh 'rexx rexxfile download'
                 }
             }
         }
         stage('Upload Maintenance') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo upload'
+                    sh 'rexx rexxfile upload'
                 }
             }
         }
         stage('Receive') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo receive'
+                    sh 'rexx rexxfile receive'
                 }
+                archiveArtifacts artifacts: 'job-archive/**/*.*'
             }
         }
         stage('Apply-Check') {
@@ -49,15 +50,17 @@ pipeline {
                 //     }
                 // }
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo apply-check'
+                    sh 'rexx rexxfile apply_check'
                 }
+                archiveArtifacts artifacts: 'job-archive/**/*.*'
             }
         }
         stage('Apply') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo apply'
+                    sh 'rexx rexxfile apply'
                 }
+                archiveArtifacts artifacts: 'job-archive/**/*.*'
             }
         }
         stage('Deploy') {
@@ -65,21 +68,24 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
                     //To deploy the maintenace, an OPS profile needs to be created since profile options are not exposed on the command line
                     sh 'zowe profiles create ops Jenkins --host $ZOWE_OPT_HOST --port 6007 --protocol http --user $ZOWE_OPT_USER --password $ZOWE_OPT_PASSWORD'
-                    echo 'deploy'
+                    sh 'rexx rexxfile stop'
+                    sh 'rexx rexxfile copy'
 
-                    // script {
-                    //     def actions = readJSON file: 'holddata/actions.json'
-                    //     if (actions.restart) {
-                    //         sh 'rexx rexxfile restartWorkflow'
-                    //     }
-                    // }
+                    script {
+                        def actions = readJSON file: 'holddata/actions.json'
+                        if (actions.restart) {
+                            sh 'rexx rexxfile restartWorkflow'
+                        }
+                    }
+                    sh 'rexx rexxfile start'
+                    sh 'rexx rexxfile apf'
                 }
             }
         }
         stage('Test') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'eosCreds', usernameVariable: 'ZOWE_OPT_USER', passwordVariable: 'ZOWE_OPT_PASSWORD')]) {
-                    sh 'echo test'
+                    sh 'npm test'
                 }
             }
         }
